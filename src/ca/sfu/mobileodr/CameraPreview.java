@@ -6,6 +6,7 @@ import java.util.List;
 import android.content.Context;
 import android.hardware.Camera;
 import android.hardware.Camera.AutoFocusCallback;
+import android.hardware.Camera.Parameters;
 import android.hardware.Camera.PreviewCallback;
 import android.util.Log;
 import android.view.SurfaceHolder;
@@ -30,6 +31,21 @@ public class CameraPreview extends SurfaceView implements
 		super(context);
 		mCamera = camera;
 		mContext = context;
+		
+		/* 
+         * Set camera to continuous focus if supported, otherwise use
+         * software auto-focus. Only works for API level >=9.
+         */
+        Camera.Parameters parameters = mCamera.getParameters();
+        for (String f : parameters.getSupportedFocusModes()) {
+            if (f == Parameters.FOCUS_MODE_CONTINUOUS_PICTURE) {
+            	Log.e(TAG, "This device supports continuous focusing");
+                parameters.setFocusMode(Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
+                autoFocusCallback = null;
+                break;
+            }
+        }
+        mCamera.setParameters(parameters);
 		
 		// supported preview sizes
         mSupportedPreviewSizes = mCamera.getParameters().getSupportedPreviewSizes();
@@ -110,8 +126,6 @@ public class CameraPreview extends SurfaceView implements
 		// preview.
 		try {
 			mCamera.setPreviewDisplay(holder);
-			mCamera.startPreview();
-			mCamera.autoFocus(autoFocusCallback);
 		} catch (IOException e) {
 			Log.d("Camera", "Error setting camera preview: " + e.getMessage());
 		}

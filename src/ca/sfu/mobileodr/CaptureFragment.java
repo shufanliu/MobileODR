@@ -78,10 +78,13 @@ public class CaptureFragment extends Fragment {
 	            previewFrame.setLayoutParams(lp);
 	        }
 	    });
-
-		// Setup Camera
-		autoFocusHandler = new Handler();
-		cameraSetup();
+		previewFrame.postDelayed(new Runnable() {
+			
+			@Override
+			public void run() {
+				mCamera.autoFocus(autoFocusCB);
+			}
+		}, 1000);
 
 		// Setup Barcode Scanner
 		/* Instance barcode scanner */
@@ -114,10 +117,20 @@ public class CaptureFragment extends Fragment {
 					mCamera.setPreviewCallback(previewCb);
 					mCamera.startPreview();
 					snapButton.setText("Capture");
-					mCamera.autoFocus(autoFocusCB);
+					rootView.findViewById(R.id.frameLayout1).postDelayed(new Runnable() {
+						
+						@Override
+						public void run() {
+							mCamera.autoFocus(autoFocusCB);
+						}
+					}, 1000);
 				}
 			}
 		});
+		
+		// Setup Camera
+		autoFocusHandler = new Handler();
+		cameraSetup();
 
 		return rootView;
 	}
@@ -129,7 +142,7 @@ public class CaptureFragment extends Fragment {
 
 		// Set Camera parameters
 		Camera.Parameters params = mCamera.getParameters();
-		//params.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
+		//params.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
 		params.setPreviewSize(640, 480);
 
 		// Setup the ZoomControl
@@ -181,7 +194,11 @@ public class CaptureFragment extends Fragment {
 		preview.addView(mPreview);
 		ImageView grid = (ImageView) rootView.findViewById(R.id.imageView1);
 		preview.bringChildToFront(grid);
-
+		
+		mCamera.setPreviewCallback(previewCb);
+		mCamera.startPreview();
+		onPreview = true;
+		mCamera.autoFocus(autoFocusCB);
 	}
 
 	/** A safe way to get an instance of the Camera object. */
@@ -200,6 +217,8 @@ public class CaptureFragment extends Fragment {
 
 		@Override
 		public void onPictureTaken(byte[] data, Camera camera) {
+			mCamera.setPreviewCallback(null);
+			mCamera.stopPreview();
 
 			// calculate ODR
 			ODRValue odrValue = new ODRValue();
@@ -247,25 +266,24 @@ public class CaptureFragment extends Fragment {
 			History history = datasource.createHistory(outputText);
 			datasource.close();
 			
-//			// Scan for barcode
-//			Camera.Parameters parameters = camera.getParameters();
-//			Size size = parameters.getPreviewSize();
-//			Image barcode = new Image(size.width, size.height, "Y800");
-//			barcode.setData(data);
-//
-//			int result = scanner.scanImage(barcode);
-//
-//			if (result != 0) {
-//				onPreview = false;
-//				mCamera.setPreviewCallback(null);
-//				mCamera.stopPreview();
-//
-//				SymbolSet syms = scanner.getResults();
-//				for (Symbol sym : syms) {
-//					statusText.setText("barcode result " + sym.getData());
-//					barcodeScanned = true;
-//				}
-//			}
+			// Scan for barcode
+			Camera.Parameters parameters = camera.getParameters();
+			Size size = parameters.getPreviewSize();
+			Image barcode = new Image(size.width, size.height, "Y800");
+			barcode.setData(data);
+
+			int result = scanner.scanImage(barcode);
+
+			if (result != 0) {
+
+				SymbolSet syms = scanner.getResults();
+				for (Symbol sym : syms) {
+					statusText.setText("barcode result " + sym.getData());
+					barcodeScanned = true;
+				}
+			} else {
+				statusText.setText("Can not find barcode. Please try again.");
+			}
 		}
 	};
 
@@ -281,10 +299,6 @@ public class CaptureFragment extends Fragment {
 			int result = scanner.scanImage(barcode);
 
 			if (result != 0) {
-//				onPreview = false;
-//				mCamera.setPreviewCallback(null);
-//				mCamera.stopPreview();
-
 				SymbolSet syms = scanner.getResults();
 				for (Symbol sym : syms) {
 					statusText.setText("barcode result " + sym.getData());
@@ -326,6 +340,7 @@ public class CaptureFragment extends Fragment {
 	private void releaseCamera() {
 		if (mCamera != null) {
 			mCamera.stopPreview();
+			onPreview = false;
 			mPreview.getHolder().removeCallback(mPreview);
 			mCamera.setPreviewCallback(null);
 			mCamera.release(); // release the camera for other applications
