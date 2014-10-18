@@ -32,21 +32,6 @@ public class CameraPreview extends SurfaceView implements
 		mCamera = camera;
 		mContext = context;
 		
-		/* 
-         * Set camera to continuous focus if supported, otherwise use
-         * software auto-focus. Only works for API level >=9.
-         */
-        Camera.Parameters parameters = mCamera.getParameters();
-        for (String f : parameters.getSupportedFocusModes()) {
-            if (f == Parameters.FOCUS_MODE_CONTINUOUS_PICTURE) {
-            	Log.e(TAG, "This device supports continuous focusing");
-                parameters.setFocusMode(Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
-                autoFocusCallback = null;
-                break;
-            }
-        }
-        mCamera.setParameters(parameters);
-		
 		// supported preview sizes
         mSupportedPreviewSizes = mCamera.getParameters().getSupportedPreviewSizes();
         //for(Camera.Size str: mSupportedPreviewSizes)
